@@ -10,7 +10,7 @@ This integration enables ServiceNow to interact with Akamai's APIs using EdgeGri
 
 ## Components
 
-### 1. `snow-akamai-auth.js` - Script Include
+### 1. `snow-akamai-auth_v2.js` - Script Include
 
 The core authentication module that implements Akamai's EdgeGrid v1 HMAC-SHA256 authentication scheme.
 
@@ -108,7 +108,7 @@ The `AkamaiEdgeGridAuth` script depends on the Hashes library for HMAC-SHA256 op
    - **API Name:** `global.AkamaiEdgeGridAuth` (auto-fills)
    - **Application:** Global (or your custom app)
    - **Active:** ✓ (checked)
-4. Copy the contents of `snow-akamai-auth.js` from this repository
+4. Copy the contents of `snow-akamai-auth_v2.js` from this repository
 5. Paste into the Script field
 6. Click **Submit**
 
