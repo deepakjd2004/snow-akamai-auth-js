@@ -1,0 +1,8 @@
+# Ensure JavaScript files use LF line endings and UTF-8 encoding
+*.js text eol=lf encoding=utf-8
+
+# Ensure consistent line endings across platforms
+* text=auto
+
+# Prevent normalization of specific files
+*.md text eol=lf
