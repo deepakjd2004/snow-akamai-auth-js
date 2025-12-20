@@ -1,6 +1,3 @@
-// Akamai's EdgeGrid authentication only hashes the request body for POST requests
-// PUT, GET, DELETE, and PATCH all sign without a content hash (three consecutive tabs in signature data)
-
 var AkamaiEdgeGridAuth = Class.create();
 AkamaiEdgeGridAuth.prototype = {
   initialize: function () {
@@ -17,7 +14,7 @@ AkamaiEdgeGridAuth.prototype = {
    * @param {string} method - HTTP method (GET, POST, PUT, DELETE)
    * @param {string} path - API path (e.g., /config-dns/v2/zones/example.com/names/test/types/A)
    * @param {string} body - Request body (empty string for GET)
-   * @param {string} queryString - Optional query string (e.g., accountSwitchKey=B-C-1ED34DK)
+   * @param {string} queryString - Optional query string (e.g., accountSwitchKey=xxxx)
    * @returns {string} Authorization header value
    */
   getAuthHeader: function (method, path, body, queryString) {
