@@ -18,10 +18,16 @@ AkamaiEdgeGridAuth.prototype = {
    * @returns {string} Authorization header value
    */
   getAuthHeader: function (method, path, body, queryString) {
-    // Add query string to path if provided
+    // Normalize method/body so signature generation is consistent.
+    method = (method || "").toString().toUpperCase();
+    body = body == null ? "" : body.toString();
+
+    // Add query string to path if provided.
+    // Use "&" if the path already contains a "?" to avoid a double-"?" URL
+    // (e.g. path="/foo?zone=x" + queryString="accountSwitchKey=y" → "/foo?zone=x&accountSwitchKey=y").
     var fullPath = path;
     if (queryString && queryString.length > 0) {
-      fullPath = path + "?" + queryString;
+      fullPath = path + (path.indexOf("?") !== -1 ? "&" : "?") + queryString;
     }
 
     // Generate timestamp
@@ -39,7 +45,7 @@ AkamaiEdgeGridAuth.prototype = {
       this.clientToken,
       this.accessToken,
       timestamp,
-      nonce
+      nonce,
     );
 
     // Generate signing key
@@ -54,7 +60,7 @@ AkamaiEdgeGridAuth.prototype = {
       this.accessToken,
       timestamp,
       nonce,
-      signature
+      signature,
     );
 
     return authHeader;
@@ -112,6 +118,9 @@ AkamaiEdgeGridAuth.prototype = {
     );
   },
 
+  // Max body size constant — matches official EdgeGrid library (helpers.js MAX_BODY = 131072).
+  MAX_BODY: 131072,
+
   _generateSignatureData: function (
     method,
     host,
@@ -120,37 +129,55 @@ AkamaiEdgeGridAuth.prototype = {
     clientToken,
     accessToken,
     timestamp,
-    nonce
+    nonce,
   ) {
     var tab = String.fromCharCode(9); // Tab character
-    var signatureData = "";
 
-    // CRITICAL: Only POST includes content hash, not PUT!
-    // This matches the Node.js EdgeGrid library behavior
-    if (method === "POST") {
-      // For POST only, include content hash
-      signatureData = method + tab;
-      signatureData += "https" + tab;
-      signatureData += host + tab;
-      signatureData += path + tab;
-      signatureData += tab + this.digest.getSHA256Base64(body) + tab;
-      signatureData += "EG1-HMAC-SHA256 ";
-      signatureData += "client_token=" + clientToken + ";";
-      signatureData += "access_token=" + accessToken + ";";
-      signatureData += "timestamp=" + timestamp + ";";
-      signatureData += "nonce=" + nonce + ";";
-    } else {
-      // For GET, PUT, DELETE, PATCH - no content hash
-      signatureData = method + tab;
-      signatureData += "https" + tab;
-      signatureData += host + tab;
-      signatureData += path + tab + tab + tab;
-      signatureData += "EG1-HMAC-SHA256 ";
-      signatureData += "client_token=" + clientToken + ";";
-      signatureData += "access_token=" + accessToken + ";";
-      signatureData += "timestamp=" + timestamp + ";";
-      signatureData += "nonce=" + nonce + ";";
+    // Build the unsigned auth header prefix — same value passed as the last
+    // data-to-sign field in the official library's makeAuthHeader() / dataToSign().
+    var authHeaderPrefix =
+      "EG1-HMAC-SHA256 " +
+      "client_token=" +
+      clientToken +
+      ";" +
+      "access_token=" +
+      accessToken +
+      ";" +
+      "timestamp=" +
+      timestamp +
+      ";" +
+      "nonce=" +
+      nonce +
+      ";";
+
+    // Content hash: only for POST with a non-empty body.
+    // Official library guard: if (request.method === 'POST' && preparedBody.length > 0)
+    // An empty POST body → contentHash is "" (empty string), not SHA256("").
+    var contentHash = "";
+    if (method === "POST" && body.length > 0) {
+      // Truncate to MAX_BODY before hashing, matching official library behaviour.
+      var bodyToHash =
+        body.length > this.MAX_BODY ? body.substring(0, this.MAX_BODY) : body;
+      contentHash = this.digest.getSHA256Base64(bodyToHash);
     }
+
+    // Canonical data-to-sign field order (tab-separated), per official library dataToSign():
+    //   method \t scheme \t host \t path+query \t canonHeaders \t contentHash \t authHeaderPrefix
+    // canonHeaders is always empty here (no headersToSign), producing two consecutive tabs
+    // between path and contentHash.
+    var signatureData =
+      method +
+      tab +
+      "https" +
+      tab +
+      host +
+      tab +
+      path +
+      tab +
+      tab + // empty canonicalized headers field
+      contentHash +
+      tab +
+      authHeaderPrefix;
 
     return signatureData;
   },
@@ -166,7 +193,7 @@ AkamaiEdgeGridAuth.prototype = {
     accessToken,
     timestamp,
     nonce,
-    signature
+    signature,
   ) {
     var authHeader = "EG1-HMAC-SHA256 ";
     authHeader += "client_token=" + clientToken + ";";
