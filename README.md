@@ -10,9 +10,9 @@ This integration enables ServiceNow to interact with Akamai's APIs using EdgeGri
 
 ## Components
 
-### 1. `snow-akamai-auth_v2.js` - Script Include
+### 1. `snow-akamai-auth_v2.js` - Script Include (RECOMMENDED)
 
-The core authentication module that implements Akamai's EdgeGrid v1 HMAC-SHA256 authentication scheme.
+The core authentication module that implements Akamai's EdgeGrid v1 HMAC-SHA256 authentication scheme (version 2).
 
 **Dependencies:**
 
@@ -34,11 +34,17 @@ var authHeader = authHelper.getAuthHeader(
   "GET",
   "/config-dns/v2/zones/example.com",
   "",
-  ""
+  "",
 );
 ```
 
-### 2. `example-EDNS-code.js` - Business Rule Example
+### 2. `snow-akamai-auth.js` - Script Include (LEGACY)
+
+The original version 1 of the Akamai EdgeGrid authentication module. Kept for backward compatibility. It's recommended to use `snow-akamai-auth_v2.js` instead.
+
+**Status:** Deprecated - Use version 2 for new implementations
+
+### 3. `example-EDNS-code.js` - Business Rule Example
 
 A complete ServiceNow Business Rule that demonstrates how to use the authentication helper to manage Akamai DNS records.
 
@@ -49,19 +55,30 @@ A complete ServiceNow Business Rule that demonstrates how to use the authenticat
 - Updates the ServiceNow record with status and response messages
 - Supports multi-account operations via accountSwitchKey
 
+### 4. Test Scripts
+
+A collection of test scripts located in the `test-scripts/` folder to validate the Akamai DNS API integration before deploying to production:
+
+- **`test-script-EDNS.js`** - Basic Edge DNS functionality test
+- **`test-script-GET-POST-EDNS.js`** - Tests GET and POST operations for DNS records
+- **`test-script-GET-POST-PUT-EDNS.js`** - Tests GET, POST, and PUT operations for DNS records
+- **`test-script-createChangelist.js`** - Tests changelist creation for batch DNS updates
+- **`test-script-createCL-addRecordSet-activateCL.js`** - Tests the full workflow: create changelist, add records, activate
+- **`test-script-DELETE-RECORDSET.js`** - Tests DNS record deletion
+
+**Usage:** Run any test script in ServiceNow via **System Definition → Scripts - Background** to validate your setup.
+
 ## Prerequisites
 
 ### ServiceNow Setup
 
 1. **System Properties** - Configure the following properties in ServiceNow:
-
    - `akamai.client_token` - Your Akamai API client token
    - `akamai.client_secret` - Your Akamai API client secret
    - `akamai.access_token` - Your Akamai API access token
    - `akamai.host` - Your Akamai API host (e.g., `akab-xxxxx.luna.akamaiapis.net`)
 
 2. **REST Message** - Create an outbound REST message named "Akamai DNS API" with the following methods:
-
    - `checkDNSRecord` - GET method to check if DNS record exists
    - `createDNSRecord` - POST method to create DNS records
 
